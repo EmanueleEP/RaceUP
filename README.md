@@ -12,6 +12,7 @@ The following are the steps I took, in chronological order, to solve the task:
 
 
 ASSUMPTIONS:
+
     - There are no cycles in the paths leading to 'E'. Otherwise, the algorithm may enter an infinite loop.
     - Characters '.' along with any other character that is not ('S', 'E', or '#') are considered equivalent (thus representing free passages).
 
