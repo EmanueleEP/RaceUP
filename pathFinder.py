@@ -1,10 +1,19 @@
 import os
 
-# global vars
+# global vars:
+
+# Folder containing the exercises
 folder_path = "mazes/"
 
+# Define the possible moves with their directions
+moves = [
+    (-1, 0, "UP"),     # Move UP
+    (1, 0, "DOWN"),    # Move DOWN
+    (0, -1, "LEFT"),   # Move LEFT
+    (0, 1, "RIGHT")    # Move RIGHT
+]
 
-
+# Check if .txt files exists in maze folder
 def has_txt_files(folder_path):
     # Check if the directory exists
     if not os.path.isdir(folder_path):
@@ -21,16 +30,16 @@ def has_txt_files(folder_path):
     return txt, txt_list
 
 
-
+# Print matrices in list
 def printMatrices(exampleMatrices):
     for matrix in exampleMatrices:
         print("Matrix:")
         for row in matrix:
             print(row)
-        print()  # Blank line to separate matrices
+        print()  # Blank line
 
 
-
+# Create matrices having the list of file names
 def listExamples(file_list):
     exampleMatrices = []
     for file_ in file_list:
@@ -47,100 +56,65 @@ def listExamples(file_list):
     return exampleMatrices
 
 
-
+# Search starting position
 def startPosMaze(mazeMatrix):
-    # Letter S is not necessarily in first row first column
-    r = 0
-    c = 0
-    # Search until S char is found
-    continueSearch = True
+    # Search for the 'S' character in the maze
     for row in range(len(mazeMatrix)):
-        for col in range(len(mazeMatrix[r])):
-            if mazeMatrix[r][c] == 'S':
-                r = row
-                c = col
-                continueSearch = False
-                break
-        
-        if not continueSearch:
-            break
-    return r, c
-
+        for col in range(len(mazeMatrix[row])):
+            if mazeMatrix[row][col] == 'S':
+                return row, col  # Return the position immediately upon finding 'S'
+    
+    raise ValueError("Start position 'S' not found in the maze.")  # Return Error if 'S' is not found
 
 
 # Return last move done
 def lastMoveDirection(row, col, prevRow, prevCol):
+    # Calculate the difference in positions
     diffRow = row - prevRow
     diffCol = col - prevCol
 
-    if diffRow == -1 and diffCol == 0:
-        # current pos is below previous
-        return "UP"
-    elif diffRow == 1 and diffCol == 0:
-        return "DOWN"
-    elif diffRow == 0 and diffCol == -1:
-        return "LEFT"
-    else: 
-        return "RIGHT" # (0, 1)
+    # Iterate through the moves to find the direction
+    for rowOffset, colOffset, moveName in moves: # moves is a global var.
+        if diffRow == rowOffset and diffCol == colOffset:
+            return moveName
+
+    return "UNKNOWN MOVE"  # In case of an unexpected case
 
 
-
-def recursiveSearch(rowPos, colPos, mazeMatrix, prevRowPos = None, prevColPos = None):
+# Search recursively for the solution
+def recursiveSearch(rowPos, colPos, mazeMatrix, prevRowPos=None, prevColPos=None):
     symbol = mazeMatrix[rowPos][colPos]
 
+    # Base case: Exit found
     if symbol == 'E':
         return True, ""
-    
-    found = False
 
-    if not (rowPos-1 == prevRowPos and colPos == prevColPos): 
-        # check if UP move is available, otherwise same position as previous iteration
-        up = mazeMatrix[rowPos - 1][colPos] if ((rowPos - 1) in range(len(mazeMatrix))) else '#'
-        if not (up == "#"):
-            found, direction = recursiveSearch(rowPos - 1, colPos, mazeMatrix, rowPos, colPos)
-            if found:
-                tempList = lastMoveDirection(rowPos - 1, colPos, rowPos, colPos)
-                tempList += " " + direction
-                return found, tempList
-    
+    # Iterate over each possible move
+    for rowOffset, colOffset, moveName in moves:
+        newRow, newCol = rowPos + rowOffset, colPos + colOffset
 
-    if not (rowPos+1 == prevRowPos and colPos == prevColPos) and not found: 
-        down = mazeMatrix[rowPos + 1][colPos] if ((rowPos + 1) in range(len(mazeMatrix))) else '#'
-        if not (down == "#"):
-            found, direction = recursiveSearch(rowPos + 1, colPos, mazeMatrix, rowPos, colPos)
+        # Check that the new position is within bounds and not the previous cell
+        if (0 <= newRow < len(mazeMatrix) and 0 <= newCol < len(mazeMatrix[0])
+                and (newRow != prevRowPos or newCol != prevColPos)
+                and mazeMatrix[newRow][newCol] != '#'):
+            
+            # Recursive call to search in the new position
+            found, direction = recursiveSearch(newRow, newCol, mazeMatrix, rowPos, colPos)
             if found:
-                tempList = lastMoveDirection(rowPos + 1, colPos, rowPos, colPos)
+                tempList = lastMoveDirection(newRow, newCol, rowPos, colPos)
                 tempList += " " + direction
                 return found, tempList
 
-
-    if not (rowPos == prevRowPos and colPos-1 == prevColPos) and not found: 
-        left = mazeMatrix[rowPos][colPos - 1] if ((colPos - 1) in range(len(mazeMatrix[rowPos]))) else '#'
-        if not (left == "#"):
-            found, direction = recursiveSearch(rowPos, colPos - 1, mazeMatrix, rowPos, colPos)
-            if found:
-                tempList = lastMoveDirection(rowPos, colPos - 1, rowPos, colPos)
-                tempList += " " + direction
-                return found, tempList
-
-
-    if not (rowPos == prevRowPos and colPos+1 == prevColPos) and not found: 
-        right = mazeMatrix[rowPos][colPos + 1] if ((colPos + 1) in range(len(mazeMatrix[rowPos]))) else '#'
-        if not (right == "#"):
-            found, direction = recursiveSearch(rowPos , colPos + 1, mazeMatrix, rowPos, colPos)
-            if found:
-                tempList = lastMoveDirection(rowPos, colPos + 1, rowPos, colPos)
-                tempList += " " + direction
-                return found, tempList
-
-    # no moves allowed
+    # No moves available, exit not found
     return False, "No exit found :("
 
 
 
 def main():
+    
     file_list = []
     
+    # Check if exists at least one .txt file in 'maze/' folder
     try:
         result, file_list = has_txt_files(folder_path)
         if result:
@@ -156,9 +130,23 @@ def main():
     # Create a list of matrices containing all the exercises
     matrices = listExamples(file_list)
 
-    # make for loop for all the exercises
-    r, c = startPosMaze(matrices[0])
-    print(recursiveSearch(r,c, matrices[0])[1])
+    # Solution for all mazes in list
+    for i in range(len(matrices)):
+
+        print(f"Exercise {i+1}: ")
+        
+        # Handle no starting pos error
+        try:
+            # Find cell containing char 'S'
+            r, c = startPosMaze(matrices[i])
+            print(f"Starting position: row={r}, col={c}")
+            # Recursively search for solution
+            print(recursiveSearch(r,c, matrices[i])[1])
+        except ValueError as e:
+            print(e)  
+        
+        print()
+
 
 
 if __name__ == "__main__":
